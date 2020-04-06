@@ -922,6 +922,13 @@ func getChainUnaryHandler(interceptors []UnaryServerInterceptor, curr int, info 
 	}
 }
 
+// RawRequestBytesKey can be used to retrieve the raw bytes of the protobuf object.
+type RawRequestBytesKey struct{}
+
+func contextWithRawRequestBytes(ctx context.Context, d []byte) context.Context {
+	return context.WithValue(ctx, RawRequestBytesKey{}, d)
+}
+
 func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.Stream, srv *service, md *MethodDesc, trInfo *traceInfo) (err error) {
 	sh := s.opts.statsHandler
 	if sh != nil || trInfo != nil || channelz.IsOn() {
@@ -1079,6 +1086,7 @@ func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.
 		return nil
 	}
 	ctx := NewContextWithServerTransportStream(stream.Context(), stream)
+	ctx = contextWithRawRequestBytes(ctx, d)
 	reply, appErr := md.Handler(srv.server, ctx, df, s.opts.unaryInt)
 	if appErr != nil {
 		appStatus, ok := status.FromError(appErr)
